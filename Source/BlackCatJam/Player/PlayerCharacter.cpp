@@ -1,16 +1,17 @@
 #include "BlackCatJam/Player/PlayerCharacter.h"
 
-#include "Components/CapsuleComponent.h"
-#include "InputMappingContext.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "PlayerTrack.h"
 #include "SnapCamera.h"
-#include "Kismet/GameplayStatics.h"
+#include "BlackCatJam/MainGameMode.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
 	Sensitivity = 1.0f;
+	TrackSpeed = 100.0f;
+	MovingAlongTrack = false;
 	
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -29,6 +30,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Handles Camera Movement
 	float interpolatedSensitivity = FMath::Lerp(Sensitivity, FocusSensitivity, PlayerCamera->GetNormalisedFOVScale());
 	if (Controller != nullptr && LookVector != FVector2D::Zero())
 	{
@@ -38,6 +40,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 		AddControllerPitchInput(lookInput.Y * interpolatedSensitivity * DeltaTime);
 		LookVector = FVector2D::Zero();
 	}
+
+	// Track Movement
+	MoveAlongTrack(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -61,6 +66,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
+void APlayerCharacter::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+}
+
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	LookVector = Value.Get<FVector2D>();
@@ -75,4 +85,31 @@ void APlayerCharacter::TakePhoto()
 void APlayerCharacter::FocusCamera()
 {
 	PlayerCamera->FocusCamera();
+}
+
+void APlayerCharacter::StartMovingAlongTrack()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Track Started"));
+	
+	DistanceAlongTrack = 0.0f;
+	MovingAlongTrack = true;
+}
+
+void APlayerCharacter::MoveAlongTrack(float DeltaTime)
+{
+	if (Track && MovingAlongTrack)
+	{
+		float trackSpeed = TrackSpeed * DeltaTime;
+		DistanceAlongTrack += trackSpeed;
+
+		FVector trackPosition = Track->GetPositionOnTrack(DistanceAlongTrack);
+		FVector trackOffsetPosition = FVector(trackPosition.X, trackPosition.Y, GetActorLocation().Z);
+		SetActorLocation(trackOffsetPosition);
+
+		if (Track->HasReachedEndOfTrack(DistanceAlongTrack))
+		{
+			MovingAlongTrack = false;
+			OnReachedEndOfTrack.Broadcast();
+		}
+	}
 }

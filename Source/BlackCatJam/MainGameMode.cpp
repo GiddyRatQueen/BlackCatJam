@@ -1,9 +1,32 @@
 #include "MainGameMode.h"
 
+#include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
+#include "Player/PlayerCharacter.h"
 #include "Player/SnapCamera.h"
 
 AMainGameMode::AMainGameMode()
 {
+}
+
+void AMainGameMode::StartTrack()
+{
+	TrackStarted = true;
+	TrackEnded = false;
+	IsMovingAlongTrack = true;
+
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Track Started"));
+	PlayerCharacter->StartMovingAlongTrack();
+	OnTrackStart.Broadcast();
+}
+
+void AMainGameMode::EndTrack()
+{
+	TrackStarted = false;
+	TrackEnded = true;
+	IsMovingAlongTrack = false;
+	
+	OnTrackEnd.Broadcast();
 }
 
 void AMainGameMode::BeginPlay()
@@ -13,11 +36,16 @@ void AMainGameMode::BeginPlay()
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	if (APawn* PlayerPawn = PlayerController->GetPawn())
 	{
+		PlayerCharacter = Cast<APlayerCharacter>(PlayerPawn);
+		PlayerCharacter->OnReachedEndOfTrack.AddUniqueDynamic(this, &AMainGameMode::OnPlayerReachedEndOfTrack);
+		
 		PlayerSnapCamera = PlayerPawn->FindComponentByClass<USnapCamera>();
 		PlayerSnapCamera->OnPhotoTaken.BindUObject(this, &AMainGameMode::OnPhotoTaken);
 		PlayerSnapCamera->OnCameraFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraFocus);
 		PlayerSnapCamera->OnCameraUnFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraUnFocus);
 	}
+
+	StartTrack();
 }
 
 void AMainGameMode::OnPhotoTaken() const
@@ -33,4 +61,9 @@ void AMainGameMode::OnCameraFocus()
 void AMainGameMode::OnCameraUnFocus()
 {
 	OnCameraUnFocusEvent.Broadcast();
+}
+
+void AMainGameMode::OnPlayerReachedEndOfTrack()
+{
+	EndTrack();
 }
