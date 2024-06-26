@@ -89,7 +89,8 @@ void APlayerCharacter::FocusCamera()
 
 void APlayerCharacter::StartMovingAlongTrack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Track Started"));
+	if (Track == nullptr)
+		return;
 	
 	DistanceAlongTrack = 0.0f;
 	MovingAlongTrack = true;
@@ -97,7 +98,7 @@ void APlayerCharacter::StartMovingAlongTrack()
 
 void APlayerCharacter::MoveAlongTrack(float DeltaTime)
 {
-	if (Track && MovingAlongTrack)
+	if (Track != nullptr && MovingAlongTrack)
 	{
 		float trackSpeed = TrackSpeed * DeltaTime;
 		DistanceAlongTrack += trackSpeed;

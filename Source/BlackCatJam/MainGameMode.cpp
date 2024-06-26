@@ -14,8 +14,7 @@ void AMainGameMode::StartTrack()
 	TrackStarted = true;
 	TrackEnded = false;
 	IsMovingAlongTrack = true;
-
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Track Started"));
+	
 	PlayerCharacter->StartMovingAlongTrack();
 	OnTrackStart.Broadcast();
 }
