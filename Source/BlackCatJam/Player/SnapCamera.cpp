@@ -51,6 +51,15 @@ void USnapCamera::FocusCamera()
 	{
 		Focused = true;
 	}
+
+	if (!Focused)
+	{
+		OnCameraFocus.Broadcast();
+	}
+	else
+	{
+		OnCameraUnFocus.Broadcast();
+	}
 	
 	Focusing = true;
 }
@@ -77,8 +86,8 @@ void USnapCamera::ZoomInCameraUpdate(float DeltaTime)
 
 		SetFieldOfView(FocusFOV);
 		CurveValue = 1.0f;
-
-		OnCameraFocus.Broadcast();
+		
+		//OnCameraFocus.Broadcast();
 	}
 }
 
@@ -100,6 +109,6 @@ void USnapCamera::ZoomOutCameraUpdate(float DeltaTime)
 		CurrentTime = 0.0f;
 		CurveValue = 0.0f;
 
-		OnCameraUnFocus.Broadcast();
+		//OnCameraUnFocus.Broadcast();
 	}
 }

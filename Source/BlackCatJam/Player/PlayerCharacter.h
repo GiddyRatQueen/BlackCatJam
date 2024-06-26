@@ -36,6 +36,8 @@ class BLACKCATJAM_API APlayerCharacter : public APawn
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
 	float FocusSensitivity;
+
+	FVector2D LookVector;
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = Input)

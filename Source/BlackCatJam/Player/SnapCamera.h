@@ -7,8 +7,8 @@
 #include "SnapCamera.generated.h"
 
 DECLARE_DELEGATE(FOnPhotoSnapSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraFocusSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraUnFocusSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFocusSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnFocusSignature);
 
 class USceneCaptureComponent2D;
 class UCurveFloat;
@@ -40,8 +40,8 @@ public:
 public:
 	FOnPhotoSnapSignature OnPhotoTaken;
 	
-	FOnCameraFocusSignature OnCameraFocus;
-	FOnCameraUnFocusSignature OnCameraUnFocus;
+	FOnFocusSignature OnCameraFocus;
+	FOnUnFocusSignature OnCameraUnFocus;
 	
 public:	
 	// Sets default values for this component's properties

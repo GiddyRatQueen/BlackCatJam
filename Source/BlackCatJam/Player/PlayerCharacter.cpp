@@ -28,6 +28,16 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	float interpolatedSensitivity = FMath::Lerp(Sensitivity, FocusSensitivity, PlayerCamera->GetNormalisedFOVScale());
+	if (Controller != nullptr && LookVector != FVector2D::Zero())
+	{
+		FVector2D lookInput = LookVector;
+		
+		AddControllerYawInput(lookInput.X * interpolatedSensitivity * DeltaTime);
+		AddControllerPitchInput(lookInput.Y * interpolatedSensitivity * DeltaTime);
+		LookVector = FVector2D::Zero();
+	}
 }
 
 // Called to bind functionality to input
@@ -53,17 +63,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
-	FVector2D lookAxis = Value.Get<FVector2D>();
-	lookAxis.Normalize();
-
-	float interpolatedSensitivity = FMath::Lerp(Sensitivity, FocusSensitivity, PlayerCamera->GetNormalisedFOVScale());
-	lookAxis *= interpolatedSensitivity * UGameplayStatics::GetWorldDeltaSeconds(this);
-	
-	if (Controller != nullptr)
-	{
-		AddControllerYawInput(lookAxis.X);
-		AddControllerPitchInput(lookAxis.Y);
-	}
+	LookVector = Value.Get<FVector2D>();
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Look Vector %s"), *LookVector.ToString()));
 }
 
 void APlayerCharacter::TakePhoto()
