@@ -3,12 +3,15 @@
 #include "BlackCatJam/Cat.h"
 #include "BlackCatJam/MainGameMode.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
 USnapCamera::USnapCamera()
 {
 	bUsePawnControlRotation = true;
 	InitialFOV = FieldOfView;
+	CurrentFOV = InitialFOV;
+	FocusViewport = FVector2D(1320, 350);
 	CurrentTime = 0.0f;
 	CurveValue = 0.0f;
 	
@@ -32,15 +35,6 @@ void USnapCamera::BeginPlay()
 void USnapCamera::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (Focusing && !Focused)
-	{
-		ZoomInCameraUpdate(DeltaTime);
-	}
-	else if (Focusing && Focused)
-	{
-		ZoomOutCameraUpdate(DeltaTime);
-	}
 }
 
 void USnapCamera::TakePhoto() const
@@ -60,23 +54,32 @@ void USnapCamera::TakePhoto() const
 	}
 }
 
-void USnapCamera::FocusCamera()
+void USnapCamera::FocusCamera(EZoomLevel NewZoomLevel)
 {
-	if (Focusing)
-	{
-		Focused = true;
-	}
+	// Ignore if already at that Zoom Level
+	if (ZoomLevel == NewZoomLevel)
+		return;
 
-	if (!Focused)
-	{
-		OnCameraFocus.Broadcast();
-	}
-	else
-	{
-		OnCameraUnFocus.Broadcast();
-	}
+	ZoomedIn = true;
+	AdjustCameraZoom(NewZoomLevel);
+}
+
+void USnapCamera::FocusCamera(int value)
+{
+	uint8 zoomValue = (uint8)ZoomLevel;
+	uint8 newZoomValue = zoomValue + value;
+	newZoomValue = FMath::Clamp(newZoomValue, 0, 2); // Hard Coded Zoom Values (Only Two: Far & Very Far)
+
+	if (newZoomValue > zoomValue)
+		OnCameraZoomIn();
+	else if (newZoomValue < zoomValue)
+		OnCameraZoomOut();
 	
-	Focusing = true;
+	EZoomLevel newZoomLevel = static_cast<EZoomLevel>(newZoomValue);
+	if (newZoomLevel != EZoomLevel::Normal)
+	{
+		FocusCamera(newZoomLevel);
+	}
 }
 
 bool USnapCamera::IsActorWithinFocusRegion(AActor* Actor) const
@@ -100,45 +103,52 @@ bool USnapCamera::IsActorWithinFocusRegion(AActor* Actor) const
 
 float USnapCamera::GetNormalisedFOVScale()
 {
-	float factor = (FieldOfView - InitialFOV) / (FocusFOV - InitialFOV);
+	float factor = (FieldOfView - InitialFOV) / (CurrentFOV - InitialFOV);
 	return FMath::Clamp(factor, 0.0f, 1.0f);
 }
 
-void USnapCamera::ZoomInCameraUpdate(float DeltaTime)
+void USnapCamera::AdjustCameraZoom(EZoomLevel NewZoomLevel)
 {
-	CurrentTime += DeltaTime;
-	CurveValue = FocusCurve->GetFloatValue(CurrentTime);
-		
-	float newFOV = FMath::Lerp(InitialFOV, FocusFOV, CurveValue);
-	SetFieldOfView(newFOV);
-	SceneCaptureComponent->FOVAngle = newFOV;
-
-	if (CurveValue >= 1.0f)
+	IsAdjustingZoom = true;
+	
+	GetWorld()->GetTimerManager().SetTimer(ZoomTimerHandle, [this, NewZoomLevel]()
 	{
-		Focused = true;
-		Focusing = false;
+		CurrentTime += UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
+		CurveValue = FocusCurve->GetFloatValue(CurrentTime);
 
-		SetFieldOfView(FocusFOV);
-		CurveValue = 1.0f;
-	}
+		float FOV = GetFOVLevel(NewZoomLevel);
+		float newFOV = FMath::Lerp(CurrentFOV, FOV, CurveValue);
+		SetFieldOfView(newFOV);
+		SceneCaptureComponent->FOVAngle = newFOV;
+
+		if (CurveValue >= 1.0f)
+		{
+			IsAdjustingZoom = false;
+			ZoomLevel = NewZoomLevel;
+			CurrentFOV = FOV;
+			CurveValue = 0.0f;
+			CurrentTime = 0.0f;
+
+			SetFieldOfView(FOV);
+			GetWorld()->GetTimerManager().ClearTimer(ZoomTimerHandle);
+		}
+		
+	}, UGameplayStatics::GetWorldDeltaSeconds(GetWorld()), true);
 }
 
-void USnapCamera::ZoomOutCameraUpdate(float DeltaTime)
+float USnapCamera::GetFOVLevel(EZoomLevel NewZoomLevel)
 {
-	CurrentTime -= DeltaTime;
-	CurveValue = FocusCurve->GetFloatValue(CurrentTime);
-		
-	float newFOV = FMath::Lerp(InitialFOV, FocusFOV, CurveValue);
-	SetFieldOfView(newFOV);
-	SceneCaptureComponent->FOVAngle = newFOV;
-
-	if (CurveValue <= 0.01f)
+	switch (NewZoomLevel)
 	{
-		Focused = false;
-		Focusing = false;
-		
-		SetFieldOfView(InitialFOV);
-		CurrentTime = 0.0f;
-		CurveValue = 0.0f;
+	case EZoomLevel::Normal:
+		return InitialFOV;
+
+	case EZoomLevel::Far:
+		return FarFOV;
+
+	case EZoomLevel::VeryFar:
+		return VeryFarFOV;
 	}
+
+	return InitialFOV;
 }

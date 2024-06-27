@@ -51,8 +51,6 @@ void AMainGameMode::BeginPlay()
 		
 		PlayerSnapCamera = PlayerPawn->FindComponentByClass<USnapCamera>();
 		PlayerSnapCamera->OnPhotoTaken.BindUObject(this, &AMainGameMode::OnPhotoTaken);
-		PlayerSnapCamera->OnCameraFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraFocus);
-		PlayerSnapCamera->OnCameraUnFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraUnFocus);
 		PlayerSnapCamera->OnCatPhotoTaken.AddUniqueDynamic(this, &AMainGameMode::OnCatDetected);
 	}
 
@@ -64,22 +62,20 @@ void AMainGameMode::OnPhotoTaken() const
 	OnPhotoTakenEvent.Broadcast();
 }
 
-void AMainGameMode::OnCameraFocus()
-{
-	OnCameraFocusEvent.Broadcast();
-}
-
-void AMainGameMode::OnCameraUnFocus()
-{
-	OnCameraUnFocusEvent.Broadcast();
-}
-
 void AMainGameMode::OnCatDetected(ACat* Cat)
 {
 	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Cat Detected: %s"), *enumPtr->GetDisplayNameTextByValue((int64)Cat->CatType).ToString()));
-	
 	OnCatPhotoTaken.Broadcast();
+
+	switch (Cat->CatType)
+	{
+		case ECatType::BlackCat:
+			{
+				OnBlackCatFound();
+				break;
+			}
+	}
 }
 
 void AMainGameMode::OnPlayerReachedEndOfTrack()

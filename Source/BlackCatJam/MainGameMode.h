@@ -25,12 +25,6 @@ public:
 	FOnPhotoTakenSignature OnPhotoTakenEvent;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnCameraFocusSignature OnCameraFocusEvent;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnCameraUnFocusSignature OnCameraUnFocusEvent;
-
-	UPROPERTY(BlueprintAssignable)
 	FOnTrackStartSignature OnTrackStart;
 
 	UPROPERTY(BlueprintAssignable)
@@ -71,14 +65,13 @@ protected:
 	virtual void BeginPlay() override;
 	
 	void OnPhotoTaken() const;
-	UFUNCTION()
-	void OnCameraFocus();
-	UFUNCTION()
-	void OnCameraUnFocus();
-
+	
 	UFUNCTION()
 	void OnCatDetected(ACat* Cat);
 
 	UFUNCTION()
 	void OnPlayerReachedEndOfTrack();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBlackCatFound();
 };

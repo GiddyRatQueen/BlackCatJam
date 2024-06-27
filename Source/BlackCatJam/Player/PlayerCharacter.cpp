@@ -63,6 +63,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 		Input->BindAction(SnapPhotoAction, ETriggerEvent::Triggered, this, &APlayerCharacter::TakePhoto);
 		Input->BindAction(FocusCameraAction, ETriggerEvent::Triggered, this, &APlayerCharacter::FocusCamera);
+		Input->BindAction(CameraZoomAction, ETriggerEvent::Triggered, this, &APlayerCharacter::ZoomCamera);
 	}
 }
 
@@ -84,7 +85,22 @@ void APlayerCharacter::TakePhoto()
 
 void APlayerCharacter::FocusCamera()
 {
-	PlayerCamera->FocusCamera();
+	if (!IsCameraFocusing)
+	{
+		IsCameraFocusing = true;
+		PlayerCamera->FocusCamera(EZoomLevel::Far);
+	}
+	else
+	{
+		IsCameraFocusing = false;
+		PlayerCamera->FocusCamera(EZoomLevel::Normal);
+	}
+}
+
+void APlayerCharacter::ZoomCamera(const FInputActionValue& Value)
+{
+	FVector2D mouseAxis = Value.Get<FVector2D>();
+	PlayerCamera->FocusCamera(mouseAxis.X);
 }
 
 void APlayerCharacter::StartMovingAlongTrack()

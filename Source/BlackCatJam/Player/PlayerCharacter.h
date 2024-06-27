@@ -31,6 +31,9 @@ class BLACKCATJAM_API APlayerCharacter : public APawn
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* FocusCameraAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* CameraZoomAction;
 	
 	// -- Properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
@@ -52,6 +55,8 @@ class BLACKCATJAM_API APlayerCharacter : public APawn
 	float DistanceAlongTrack;
 	
 	FVector2D LookVector;
+
+	bool IsCameraFocusing;
 	
 protected:
 	UPROPERTY(EditAnywhere, Category = Input)
@@ -89,6 +94,7 @@ protected:
 	
 	void TakePhoto();
 	void FocusCamera();
+	void ZoomCamera(const FInputActionValue& Value);
 
 private:
 	void MoveAlongTrack(float DeltaTime);
