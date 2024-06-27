@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/SnapCamera.h"
+#include "Cat.h"
 
 AMainGameMode::AMainGameMode()
 {
@@ -28,6 +29,16 @@ void AMainGameMode::EndTrack()
 	OnTrackEnd.Broadcast();
 }
 
+void AMainGameMode::RegisterCat(ACat* cat)
+{
+	Cats.Add(cat);
+}
+
+TArray<ACat*> AMainGameMode::GetListOfCats()
+{
+	return Cats;
+}
+
 void AMainGameMode::BeginPlay()
 {
 	Super::BeginPlay();
@@ -42,6 +53,7 @@ void AMainGameMode::BeginPlay()
 		PlayerSnapCamera->OnPhotoTaken.BindUObject(this, &AMainGameMode::OnPhotoTaken);
 		PlayerSnapCamera->OnCameraFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraFocus);
 		PlayerSnapCamera->OnCameraUnFocus.AddUniqueDynamic(this, &AMainGameMode::OnCameraUnFocus);
+		PlayerSnapCamera->OnCatPhotoTaken.AddUniqueDynamic(this, &AMainGameMode::OnCatDetected);
 	}
 
 	StartTrack();
@@ -60,6 +72,14 @@ void AMainGameMode::OnCameraFocus()
 void AMainGameMode::OnCameraUnFocus()
 {
 	OnCameraUnFocusEvent.Broadcast();
+}
+
+void AMainGameMode::OnCatDetected(ACat* Cat)
+{
+	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Cat Detected: %s"), *enumPtr->GetDisplayNameTextByValue((int64)Cat->CatType).ToString()));
+	
+	OnCatPhotoTaken.Broadcast();
 }
 
 void AMainGameMode::OnPlayerReachedEndOfTrack()

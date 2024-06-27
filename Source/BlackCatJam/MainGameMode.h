@@ -10,6 +10,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraUnFocusSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackStartSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackEndSignature);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCatDetectedSignature);
+
 class APlayerCharacter;
 class USnapCamera;
 
@@ -34,9 +36,14 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnTrackEndSignature OnTrackEnd;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnCatDetectedSignature OnCatPhotoTaken;
+
 private:
 	APlayerCharacter* PlayerCharacter;
 	USnapCamera* PlayerSnapCamera;
+
+	TArray<class ACat*> Cats;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Track")
@@ -56,6 +63,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void EndTrack();
+
+	void RegisterCat(ACat* cat);
+	TArray<ACat*> GetListOfCats();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -65,6 +75,9 @@ protected:
 	void OnCameraFocus();
 	UFUNCTION()
 	void OnCameraUnFocus();
+
+	UFUNCTION()
+	void OnCatDetected(ACat* Cat);
 
 	UFUNCTION()
 	void OnPlayerReachedEndOfTrack();
