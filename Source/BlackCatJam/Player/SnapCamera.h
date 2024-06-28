@@ -3,52 +3,71 @@
 #include "CoreMinimal.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ActorComponent.h"
-#include "Components/TimelineComponent.h"
 #include "SnapCamera.generated.h"
 
-DECLARE_DELEGATE(FOnPhotoSnapSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFocusSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnFocusSignature);
+UENUM(BlueprintType)
+enum class EZoomLevel : uint8
+{
+	Normal UMETA(DisplayName = "Normal"),
+	Far UMETA(DisplayName = "Far"),
+	VeryFar UMETA(DisplayName = "Very Far"),
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCameraZoomSignature, EZoomLevel, ZoomLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPhotoTakenSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCatPhotoTakenSignature, class ACat*, Cat);
 
 class USceneCaptureComponent2D;
 class UCurveFloat;
+class USoundCue;
 
 UCLASS(ClassGroup=Camera, meta=(BlueprintSpawnableComponent))
 class BLACKCATJAM_API USnapCamera : public UCameraComponent
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
+	// -- Components
 	USceneCaptureComponent2D* SceneCaptureComponent;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
-	UCurveFloat* FocusCurve;
 
 	// -- Properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
-	float FocusFOV;
+	UCurveFloat* FocusCurve;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
+	float FarFOV;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
+	float VeryFarFOV;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	FVector2D FocusViewport;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio, meta=(AllowPrivateAccess = "true"))
+	USoundBase* ShutterSound;
+
+	FTimerHandle ZoomTimerHandle;
+	bool IsAdjustingZoom;
+	float InitialFOV;
+	float CurrentFOV;
 	
-	bool Focusing;
 	float CurrentTime;
 	float CurveValue;
-	float InitialFOV;
-
-	class APlayerController* PlayerController;
+	
+	APlayerController* PlayerController;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
-	bool Focused;
-	
-	FOnPhotoSnapSignature OnPhotoTaken;
-	
-	FOnFocusSignature OnCameraFocus;
-	FOnUnFocusSignature OnCameraUnFocus;
+	bool ZoomedIn;
 
-	FOnCatPhotoTakenSignature OnCatPhotoTaken;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
+	EZoomLevel ZoomLevel;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnCameraZoomSignature OnCameraZoom;
+	UPROPERTY(BlueprintAssignable)
+	FOnPhotoTakenSignature OnPhotoTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnCatPhotoTakenSignature OnCatPhotoTakenEvent;
 	
 public:	
 	// Sets default values for this component's properties
@@ -65,16 +84,15 @@ public:
 	void TakePhoto() const;
 
 	UFUNCTION(BlueprintCallable)
-	void FocusCamera();
-
+	void FocusCamera(EZoomLevel NewZoomLevel);
+	void FocusCamera(int value);
+	
 	UFUNCTION(BlueprintCallable)
 	bool IsActorWithinFocusRegion(AActor* Actor) const;
 	
 	float GetNormalisedFOVScale();
 	
 private:
-	void ZoomInCameraUpdate(float DeltaTime);
-	void ZoomOutCameraUpdate(float DeltaTime);
-
-	
+	void AdjustCameraZoom(EZoomLevel NewZoomLevel);
+	float GetFOVLevel(EZoomLevel NewZoomLevel);
 };

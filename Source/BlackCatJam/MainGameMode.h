@@ -1,11 +1,8 @@
 #pragma once
 
 #include "GameFramework/GameModeBase.h"
+#include "Player/SnapCamera.h"
 #include "MainGameMode.generated.h"
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPhotoTakenSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraFocusSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraUnFocusSignature);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackStartSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackEndSignature);
@@ -22,13 +19,10 @@ class BLACKCATJAM_API AMainGameMode : public AGameModeBase
 
 public:
 	UPROPERTY(BlueprintAssignable)
-	FOnPhotoTakenSignature OnPhotoTakenEvent;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnCameraFocusSignature OnCameraFocusEvent;
+	FOnCameraZoomSignature OnCameraZoomEvent;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnCameraUnFocusSignature OnCameraUnFocusEvent;
+	FOnPhotoTakenSignature OnPhotoTakenEvent;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnTrackStartSignature OnTrackStart;
@@ -70,15 +64,19 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	
-	void OnPhotoTaken() const;
-	UFUNCTION()
-	void OnCameraFocus();
-	UFUNCTION()
-	void OnCameraUnFocus();
-
 	UFUNCTION()
 	void OnCatDetected(ACat* Cat);
 
 	UFUNCTION()
 	void OnPlayerReachedEndOfTrack();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBlackCatFound();
+
+private:
+	UFUNCTION()
+	void OnCameraZoom(EZoomLevel ZoomLevel);
+
+	UFUNCTION()
+	void OnPhotoTaken();
 };
