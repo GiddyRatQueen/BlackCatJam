@@ -39,9 +39,6 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	float VeryFarFOV;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
-	FVector2D FocusViewport;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio, meta=(AllowPrivateAccess = "true"))
 	USoundBase* ShutterSound;
 
@@ -61,6 +58,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	EZoomLevel ZoomLevel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
+	FVector2D CameraViewport;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCameraZoomSignature OnCameraZoom;
@@ -86,11 +86,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FocusCamera(EZoomLevel NewZoomLevel);
 	void FocusCamera(int value);
+	void ResetCamera();
 	
 	UFUNCTION(BlueprintCallable)
 	bool IsActorWithinFocusRegion(AActor* Actor) const;
 	
 	float GetNormalisedFOVScale();
+
+	UFUNCTION(BlueprintCallable)
+	FVector2D CalculateViewportBasedOnFOV();
 	
 private:
 	void AdjustCameraZoom(EZoomLevel NewZoomLevel);

@@ -33,7 +33,10 @@ class BLACKCATJAM_API APlayerCharacter : public APawn
 	UInputAction* SnapPhotoAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* FocusCameraAction;
+	UInputAction* FocusCameraInAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* FocusCameraOutAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* CameraZoomAction;
@@ -95,6 +98,7 @@ protected:
 	
 	void TakePhoto();
 	void FocusCamera();
+	void UnFocusCamera();
 	void ZoomCamera(const FInputActionValue& Value);
 
 private:

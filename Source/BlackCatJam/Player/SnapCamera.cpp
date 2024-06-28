@@ -11,7 +11,7 @@ USnapCamera::USnapCamera()
 	bUsePawnControlRotation = true;
 	InitialFOV = FieldOfView;
 	CurrentFOV = InitialFOV;
-	FocusViewport = FVector2D(1320, 350);
+	CameraViewport = FVector2D(1320, 350);
 	CurrentTime = 0.0f;
 	CurveValue = 0.0f;
 	
@@ -61,8 +61,7 @@ void USnapCamera::FocusCamera(EZoomLevel NewZoomLevel)
 	// Ignore if already at that Zoom Level
 	if (ZoomLevel == NewZoomLevel)
 		return;
-
-	ZoomedIn = true;
+	
 	OnCameraZoom.Broadcast(NewZoomLevel);
 	AdjustCameraZoom(NewZoomLevel);
 }
@@ -86,17 +85,29 @@ void USnapCamera::FocusCamera(int value)
 	}
 }
 
+void USnapCamera::ResetCamera()
+{
+	ZoomedIn = false;
+	IsAdjustingZoom = false;
+	GetWorld()->GetTimerManager().ClearTimer(ZoomTimerHandle);
+
+	OnCameraZoom.Broadcast(EZoomLevel::Normal);
+	AdjustCameraZoom(EZoomLevel::Normal);
+}
+
 bool USnapCamera::IsActorWithinFocusRegion(AActor* Actor) const
 {
 	FVector2D screenPosition;
 	if (PlayerController->ProjectWorldLocationToScreen(Actor->GetActorLocation(), screenPosition))
 	{
-		FVector2D viewportSize;
-		GEngine->GameViewport->GetViewportSize(viewportSize);
+		int viewportSizeX;
+		int viewportSizeY;
+		PlayerController->GetViewportSize(viewportSizeX, viewportSizeY);
+		FVector2D viewportSize = FVector2D(viewportSizeX, viewportSizeY);
 
 		FVector2D center(viewportSize.X / 2, viewportSize.Y / 2);
-		FVector2D boxMin = center - FVector2D(FocusViewport.X / 2, FocusViewport.Y / 2);
-		FVector2D boxMax = center + FVector2D(FocusViewport.X / 2, FocusViewport.Y / 2);
+		FVector2D boxMin = center - FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
+		FVector2D boxMax = center + FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
 
 		return screenPosition.X >= boxMin.X && screenPosition.X <= boxMax.X &&
 			screenPosition.Y >= boxMin.Y && screenPosition.Y <= boxMax.Y;
@@ -114,12 +125,15 @@ float USnapCamera::GetNormalisedFOVScale()
 void USnapCamera::AdjustCameraZoom(EZoomLevel NewZoomLevel)
 {
 	IsAdjustingZoom = true;
+	CurveValue = 0.0f;
+	CurrentTime = 0.0f;
+	CurrentFOV = FieldOfView;
 	
 	GetWorld()->GetTimerManager().SetTimer(ZoomTimerHandle, [this, NewZoomLevel]()
 	{
 		CurrentTime += UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
 		CurveValue = FocusCurve->GetFloatValue(CurrentTime);
-
+		
 		float FOV = GetFOVLevel(NewZoomLevel);
 		float newFOV = FMath::Lerp(CurrentFOV, FOV, CurveValue);
 		SetFieldOfView(newFOV);
@@ -155,4 +169,18 @@ float USnapCamera::GetFOVLevel(EZoomLevel NewZoomLevel)
 	}
 
 	return InitialFOV;
+}
+
+FVector2D USnapCamera::CalculateViewportBasedOnFOV()
+{
+	float fovInRadians = FMath::DegreesToRadians(SceneCaptureComponent->FOVAngle);
+	float viewportHeight = 2 * 1000.0f * FMath::Tan(fovInRadians / 2);
+	float viewportWidth = viewportHeight * AspectRatio;
+
+	FVector2D viewportSize;
+	GEngine->GameViewport->GetViewportSize(viewportSize);
+	float pixelsPerUnitX = viewportSize.X / viewportWidth;
+	float pixelsPerUnitY = viewportSize.Y / viewportHeight;
+
+	return FVector2D(pixelsPerUnitX * viewportWidth, pixelsPerUnitY * viewportHeight);
 }
