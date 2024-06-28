@@ -50,14 +50,15 @@ void AMainGameMode::BeginPlay()
 		PlayerCharacter->OnReachedEndOfTrack.AddUniqueDynamic(this, &AMainGameMode::OnPlayerReachedEndOfTrack);
 		
 		PlayerSnapCamera = PlayerPawn->FindComponentByClass<USnapCamera>();
-		PlayerSnapCamera->OnPhotoTaken.BindUObject(this, &AMainGameMode::OnPhotoTaken);
-		PlayerSnapCamera->OnCatPhotoTaken.AddUniqueDynamic(this, &AMainGameMode::OnCatDetected);
+		PlayerSnapCamera->OnPhotoTaken.AddUniqueDynamic(this, &AMainGameMode::OnPhotoTaken);
+		PlayerSnapCamera->OnCatPhotoTakenEvent.AddUniqueDynamic(this, &AMainGameMode::OnCatDetected);
+		PlayerSnapCamera->OnCameraZoom.AddUniqueDynamic(this, &AMainGameMode::OnCameraZoom);
 	}
 
 	StartTrack();
 }
 
-void AMainGameMode::OnPhotoTaken() const
+void AMainGameMode::OnPhotoTaken()
 {
 	OnPhotoTakenEvent.Broadcast();
 }
@@ -81,4 +82,9 @@ void AMainGameMode::OnCatDetected(ACat* Cat)
 void AMainGameMode::OnPlayerReachedEndOfTrack()
 {
 	EndTrack();
+}
+
+void AMainGameMode::OnCameraZoom(EZoomLevel ZoomLevel)
+{
+	OnCameraZoomEvent.Broadcast(ZoomLevel);
 }

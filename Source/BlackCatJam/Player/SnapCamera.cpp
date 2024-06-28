@@ -16,11 +16,6 @@ USnapCamera::USnapCamera()
 	CurveValue = 0.0f;
 	
 	PrimaryComponentTick.bCanEverTick = true;
-
-	SceneCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Scene Capture Component"));
-	SceneCaptureComponent->SetupAttachment(this);
-	SceneCaptureComponent->bCaptureEveryFrame = false;
-	SceneCaptureComponent->bCaptureOnMovement = false;
 }
 
 // Called when the game starts
@@ -29,6 +24,7 @@ void USnapCamera::BeginPlay()
 	Super::BeginPlay();
 
 	PlayerController = GetWorld()->GetFirstPlayerController();
+	SceneCaptureComponent = PlayerController->GetPawn()->FindComponentByClass<USceneCaptureComponent2D>();
 }
 
 // Called every frame
@@ -39,9 +35,15 @@ void USnapCamera::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 void USnapCamera::TakePhoto() const
 {
-	OnPhotoTaken.Execute();
+	OnPhotoTaken.Broadcast();
 	SceneCaptureComponent->CaptureScene();
 
+	// Play Shutter Sound if Avaiable
+	if (ShutterSound != nullptr)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), ShutterSound);
+	}
+	
 	// Get List of Cats within View
 	TArray<ACat*> cats = Cast<AMainGameMode>(GetWorld()->GetAuthGameMode())->GetListOfCats();
 	for (ACat* cat : cats)
@@ -49,7 +51,7 @@ void USnapCamera::TakePhoto() const
 		// If Cat is on Screen
 		if (IsActorWithinFocusRegion(cat))
 		{
-			OnCatPhotoTaken.Broadcast(cat);
+			OnCatPhotoTakenEvent.Broadcast(cat);
 		}
 	}
 }
@@ -61,19 +63,21 @@ void USnapCamera::FocusCamera(EZoomLevel NewZoomLevel)
 		return;
 
 	ZoomedIn = true;
+	OnCameraZoom.Broadcast(NewZoomLevel);
 	AdjustCameraZoom(NewZoomLevel);
 }
 
 void USnapCamera::FocusCamera(int value)
 {
+	if (FocusCurve == nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("ERROR: No Focus Curve set for Snap Camera / Player Camera"));
+		return;
+	}
+	
 	uint8 zoomValue = (uint8)ZoomLevel;
 	uint8 newZoomValue = zoomValue + value;
 	newZoomValue = FMath::Clamp(newZoomValue, 0, 2); // Hard Coded Zoom Values (Only Two: Far & Very Far)
-
-	if (newZoomValue > zoomValue)
-		OnCameraZoomIn();
-	else if (newZoomValue < zoomValue)
-		OnCameraZoomOut();
 	
 	EZoomLevel newZoomLevel = static_cast<EZoomLevel>(newZoomValue);
 	if (newZoomLevel != EZoomLevel::Normal)

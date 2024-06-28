@@ -1,11 +1,8 @@
 #pragma once
 
 #include "GameFramework/GameModeBase.h"
+#include "Player/SnapCamera.h"
 #include "MainGameMode.generated.h"
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPhotoTakenSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraFocusSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraUnFocusSignature);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackStartSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTrackEndSignature);
@@ -21,6 +18,9 @@ class BLACKCATJAM_API AMainGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintAssignable)
+	FOnCameraZoomSignature OnCameraZoomEvent;
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnPhotoTakenSignature OnPhotoTakenEvent;
 
@@ -64,8 +64,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	
-	void OnPhotoTaken() const;
-	
 	UFUNCTION()
 	void OnCatDetected(ACat* Cat);
 
@@ -74,4 +72,11 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnBlackCatFound();
+
+private:
+	UFUNCTION()
+	void OnCameraZoom(EZoomLevel ZoomLevel);
+
+	UFUNCTION()
+	void OnPhotoTaken();
 };

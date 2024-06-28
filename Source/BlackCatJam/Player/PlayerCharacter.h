@@ -19,7 +19,10 @@ class BLACKCATJAM_API APlayerCharacter : public APawn
 	GENERATED_BODY()
 
 	// -- Components
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	USceneComponent* OriginPoint;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
 	USnapCamera* PlayerCamera;
 	
 	// -- Input
@@ -88,8 +91,6 @@ public:
 	void StartMovingAlongTrack();
 
 protected:
-	virtual void OnConstruction(const FTransform& Transform) override;
-	
 	void Look(const FInputActionValue& Value);
 	
 	void TakePhoto();

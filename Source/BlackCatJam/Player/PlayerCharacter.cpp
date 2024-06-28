@@ -4,11 +4,16 @@
 #include "EnhancedInputComponent.h"
 #include "PlayerTrack.h"
 #include "SnapCamera.h"
-#include "BlackCatJam/MainGameMode.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
+	OriginPoint = CreateDefaultSubobject<USceneComponent>(TEXT("Origin Point"));
+	OriginPoint->SetupAttachment(RootComponent);
+	
+	PlayerCamera = CreateDefaultSubobject<USnapCamera>(TEXT("Player Camera"));
+	PlayerCamera->SetupAttachment(OriginPoint);
+	
 	Sensitivity = 1.0f;
 	TrackSpeed = 100.0f;
 	MovingAlongTrack = false;
@@ -21,8 +26,6 @@ APlayerCharacter::APlayerCharacter()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	PlayerCamera = GetController()->GetPawn()->FindComponentByClass<USnapCamera>();
 }
 
 // Called every frame
@@ -67,11 +70,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
-void APlayerCharacter::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-}
-
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	LookVector = Value.Get<FVector2D>();
@@ -106,7 +104,10 @@ void APlayerCharacter::ZoomCamera(const FInputActionValue& Value)
 void APlayerCharacter::StartMovingAlongTrack()
 {
 	if (Track == nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("ERROR: No Track set, yet trying to move along one"));
 		return;
+	}
 	
 	DistanceAlongTrack = 0.0f;
 	MovingAlongTrack = true;
@@ -120,13 +121,22 @@ void APlayerCharacter::MoveAlongTrack(float DeltaTime)
 		DistanceAlongTrack += trackSpeed;
 
 		FVector trackPosition = Track->GetPositionOnTrack(DistanceAlongTrack);
-		FVector trackOffsetPosition = FVector(trackPosition.X, trackPosition.Y, GetActorLocation().Z);
+		FVector trackOffsetPosition = FVector(trackPosition.X, trackPosition.Y, trackPosition.Z);
 		SetActorLocation(trackOffsetPosition);
 
 		if (Track->HasReachedEndOfTrack(DistanceAlongTrack))
 		{
-			MovingAlongTrack = false;
 			OnReachedEndOfTrack.Broadcast();
+
+			if (ShouldLoopAroundTrack)
+			{
+				DistanceAlongTrack = 0.0f;
+				MovingAlongTrack = true;
+			}
+			else
+			{
+				MovingAlongTrack = false;	
+			}
 		}
 	}
 }

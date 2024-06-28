@@ -3,11 +3,7 @@
 #include "CoreMinimal.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ActorComponent.h"
-#include "Components/TimelineComponent.h"
 #include "SnapCamera.generated.h"
-
-DECLARE_DELEGATE(FOnPhotoSnapSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCatPhotoTakenSignature, class ACat*, Cat);
 
 UENUM(BlueprintType)
 enum class EZoomLevel : uint8
@@ -17,15 +13,20 @@ enum class EZoomLevel : uint8
 	VeryFar UMETA(DisplayName = "Very Far"),
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCameraZoomSignature, EZoomLevel, ZoomLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPhotoTakenSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCatPhotoTakenSignature, class ACat*, Cat);
+
 class USceneCaptureComponent2D;
 class UCurveFloat;
+class USoundCue;
 
 UCLASS(ClassGroup=Camera, meta=(BlueprintSpawnableComponent))
 class BLACKCATJAM_API USnapCamera : public UCameraComponent
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta=(AllowPrivateAccess = "true"))
+	// -- Components
 	USceneCaptureComponent2D* SceneCaptureComponent;
 
 	// -- Properties
@@ -41,6 +42,9 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	FVector2D FocusViewport;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio, meta=(AllowPrivateAccess = "true"))
+	USoundBase* ShutterSound;
+
 	FTimerHandle ZoomTimerHandle;
 	bool IsAdjustingZoom;
 	float InitialFOV;
@@ -48,8 +52,7 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	
 	float CurrentTime;
 	float CurveValue;
-
-
+	
 	APlayerController* PlayerController;
 
 public:
@@ -58,9 +61,13 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	EZoomLevel ZoomLevel;
-	
-	FOnPhotoSnapSignature OnPhotoTaken;
-	FOnCatPhotoTakenSignature OnCatPhotoTaken;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnCameraZoomSignature OnCameraZoom;
+	UPROPERTY(BlueprintAssignable)
+	FOnPhotoTakenSignature OnPhotoTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnCatPhotoTakenSignature OnCatPhotoTakenEvent;
 	
 public:	
 	// Sets default values for this component's properties
@@ -79,12 +86,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FocusCamera(EZoomLevel NewZoomLevel);
 	void FocusCamera(int value);
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnCameraZoomIn();
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnCameraZoomOut();
 	
 	UFUNCTION(BlueprintCallable)
 	bool IsActorWithinFocusRegion(AActor* Actor) const;
