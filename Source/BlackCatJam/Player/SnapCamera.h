@@ -39,6 +39,9 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	float VeryFarFOV;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Detection, meta=(AllowPrivateAccess = "true"))
+	float DetectionLength; // Length at which a Cat can be considered detected/taken a photo of
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio, meta=(AllowPrivateAccess = "true"))
 	USoundBase* ShutterSound;
 
@@ -88,9 +91,6 @@ public:
 	void FocusCamera(int value);
 	void ResetCamera();
 	
-	UFUNCTION(BlueprintCallable)
-	bool IsActorWithinFocusRegion(AActor* Actor) const;
-	
 	float GetNormalisedFOVScale();
 
 	UFUNCTION(BlueprintCallable)
@@ -99,4 +99,10 @@ public:
 private:
 	void AdjustCameraZoom(EZoomLevel NewZoomLevel);
 	float GetFOVLevel(EZoomLevel NewZoomLevel);
+	
+	bool IsActorWithinFocusRegion(const AActor* Actor) const;
+	bool IsActorWithinRange(const AActor* Actor) const;
+	bool IsActorObstructed(const AActor* Actor) const;
+
+	float GetRangeBasedOnFOV() const;
 };

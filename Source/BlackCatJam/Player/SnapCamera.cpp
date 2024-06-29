@@ -38,7 +38,7 @@ void USnapCamera::TakePhoto() const
 	OnPhotoTaken.Broadcast();
 	SceneCaptureComponent->CaptureScene();
 
-	// Play Shutter Sound if Avaiable
+	// Play Shutter Sound if Available
 	if (ShutterSound != nullptr)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), ShutterSound);
@@ -48,10 +48,18 @@ void USnapCamera::TakePhoto() const
 	TArray<ACat*> cats = Cast<AMainGameMode>(GetWorld()->GetAuthGameMode())->GetListOfCats();
 	for (ACat* cat : cats)
 	{
-		// If Cat is on Screen
-		if (IsActorWithinFocusRegion(cat))
+		// Is the Cat within a Certain Range?
+		if (IsActorWithinRange(cat))
 		{
-			OnCatPhotoTakenEvent.Broadcast(cat);
+			// Is the Cat on Screen?
+			if (IsActorWithinFocusRegion(cat))
+			{
+				// Is the Cat Obstructed by Something?
+				if (!IsActorObstructed(cat))
+				{
+					OnCatPhotoTakenEvent.Broadcast(cat);
+				}
+			}
 		}
 	}
 }
@@ -93,27 +101,6 @@ void USnapCamera::ResetCamera()
 
 	OnCameraZoom.Broadcast(EZoomLevel::Normal);
 	AdjustCameraZoom(EZoomLevel::Normal);
-}
-
-bool USnapCamera::IsActorWithinFocusRegion(AActor* Actor) const
-{
-	FVector2D screenPosition;
-	if (PlayerController->ProjectWorldLocationToScreen(Actor->GetActorLocation(), screenPosition))
-	{
-		int viewportSizeX;
-		int viewportSizeY;
-		PlayerController->GetViewportSize(viewportSizeX, viewportSizeY);
-		FVector2D viewportSize = FVector2D(viewportSizeX, viewportSizeY);
-
-		FVector2D center(viewportSize.X / 2, viewportSize.Y / 2);
-		FVector2D boxMin = center - FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
-		FVector2D boxMax = center + FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
-
-		return screenPosition.X >= boxMin.X && screenPosition.X <= boxMax.X &&
-			screenPosition.Y >= boxMin.Y && screenPosition.Y <= boxMax.Y;
-	}
-
-	return false;
 }
 
 float USnapCamera::GetNormalisedFOVScale()
@@ -169,6 +156,78 @@ float USnapCamera::GetFOVLevel(EZoomLevel NewZoomLevel)
 	}
 
 	return InitialFOV;
+}
+
+bool USnapCamera::IsActorWithinFocusRegion(const AActor* Actor) const
+{
+	FVector2D screenPosition;
+	if (PlayerController->ProjectWorldLocationToScreen(Actor->GetActorLocation(), screenPosition))
+	{
+		int viewportSizeX;
+		int viewportSizeY;
+		PlayerController->GetViewportSize(viewportSizeX, viewportSizeY);
+		FVector2D viewportSize = FVector2D(viewportSizeX, viewportSizeY);
+
+		FVector2D center(viewportSize.X / 2, viewportSize.Y / 2);
+		FVector2D boxMin = center - FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
+		FVector2D boxMax = center + FVector2D(CameraViewport.X / 2, CameraViewport.Y / 2);
+
+		return screenPosition.X >= boxMin.X && screenPosition.X <= boxMax.X &&
+			screenPosition.Y >= boxMin.Y && screenPosition.Y <= boxMax.Y;
+	}
+
+	return false;
+}
+
+bool USnapCamera::IsActorWithinRange(const AActor* Actor) const
+{
+	if (DetectionLength <= 0.0f)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, TEXT("ERROR: Detection Length for Snap Camera is 0"));
+		return false;
+	}
+
+	float distance = (Actor->GetActorLocation() - GetOwner()->GetActorLocation()).Length();
+	distance += GetRangeBasedOnFOV();
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Distance: " + FString::SanitizeFloat(distance));
+	if (distance <= DetectionLength)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool USnapCamera::IsActorObstructed(const AActor* Actor) const
+{
+	FVector start = GetOwner()->GetActorLocation();
+	FVector end = Actor->GetActorLocation();
+	FHitResult hit;
+
+	if (GetWorld())
+	{
+		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility, FCollisionQueryParams(), FCollisionResponseParams());
+		//DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.0f, 0, 4.0f);
+		if (actorHit && hit.GetActor())
+		{
+			ACat* cat = Cast<ACat>(hit.GetActor());
+			if (cat)
+			{
+				//GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, hit.GetActor()->GetFName().ToString());
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, TEXT("ERROR: Can't Get World for Raycast"));
+	return true;
+}
+
+float USnapCamera::GetRangeBasedOnFOV() const
+{
+	return CurrentFOV * 10;
 }
 
 FVector2D USnapCamera::CalculateViewportBasedOnFOV()
