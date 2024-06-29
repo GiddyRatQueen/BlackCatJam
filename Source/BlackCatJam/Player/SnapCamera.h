@@ -103,4 +103,6 @@ private:
 	bool IsActorWithinFocusRegion(const AActor* Actor) const;
 	bool IsActorWithinRange(const AActor* Actor) const;
 	bool IsActorObstructed(const AActor* Actor) const;
+
+	float GetRangeBasedOnFOV() const;
 };

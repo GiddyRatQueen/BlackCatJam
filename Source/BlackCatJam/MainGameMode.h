@@ -75,10 +75,15 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnNewCatPhotograph(ECatType CatType);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnMissionComplete();
+
 private:
 	UFUNCTION()
 	void OnCameraZoom(EZoomLevel ZoomLevel);
 
 	UFUNCTION()
 	void OnPhotoTaken();
+
+	bool AreAllCatsPhotographed() const;
 };

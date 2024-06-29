@@ -188,7 +188,8 @@ bool USnapCamera::IsActorWithinRange(const AActor* Actor) const
 	}
 
 	float distance = (Actor->GetActorLocation() - GetOwner()->GetActorLocation()).Length();
-	//GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Distance: " + FString::SanitizeFloat(distance));
+	distance += GetRangeBasedOnFOV();
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Distance: " + FString::SanitizeFloat(distance));
 	if (distance <= DetectionLength)
 	{
 		return true;
@@ -222,6 +223,11 @@ bool USnapCamera::IsActorObstructed(const AActor* Actor) const
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, TEXT("ERROR: Can't Get World for Raycast"));
 	return true;
+}
+
+float USnapCamera::GetRangeBasedOnFOV() const
+{
+	return CurrentFOV * 10;
 }
 
 FVector2D USnapCamera::CalculateViewportBasedOnFOV()

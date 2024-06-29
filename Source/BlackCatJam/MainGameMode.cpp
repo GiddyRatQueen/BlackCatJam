@@ -62,6 +62,15 @@ void AMainGameMode::OnPhotoTaken()
 	OnPhotoTakenEvent.Broadcast();
 }
 
+bool AMainGameMode::AreAllCatsPhotographed() const
+{
+	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
+	int catTypeCount = enumPtr->NumEnums();
+	int photographedCount = PhotographedCats.Num();
+
+	return photographedCount >= catTypeCount;
+}
+
 void AMainGameMode::OnCatDetected(ACat* Cat)
 {
 	ECatType catType = Cat->CatType;
@@ -69,21 +78,26 @@ void AMainGameMode::OnCatDetected(ACat* Cat)
 	{
 		OnNewCatPhotograph(catType);
 		PhotographedCats.Add(catType);
-		
-		return;
 	}
-	
-	for (ECatType Type : PhotographedCats)
+	else
 	{
-		if (catType == Type)
+		for (ECatType Type : PhotographedCats)
 		{
-			OnCatPhotograph(catType);
+			if (catType == Type)
+			{
+				OnCatPhotograph(catType);
+			}
+			else
+			{
+				OnNewCatPhotograph(catType);
+				PhotographedCats.Add(catType);
+			}
 		}
-		else
-		{
-			OnNewCatPhotograph(catType);
-			PhotographedCats.Add(catType);
-		}
+	}
+
+	if (AreAllCatsPhotographed())
+	{
+		OnMissionComplete();
 	}
 	
 	//UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
