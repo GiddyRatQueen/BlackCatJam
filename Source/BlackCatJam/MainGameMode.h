@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Cat.h"
 #include "GameFramework/GameModeBase.h"
 #include "Player/SnapCamera.h"
 #include "MainGameMode.generated.h"
@@ -30,14 +31,12 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnTrackEndSignature OnTrackEnd;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnCatDetectedSignature OnCatPhotoTaken;
-
 private:
 	APlayerCharacter* PlayerCharacter;
 	USnapCamera* PlayerSnapCamera;
 
-	TArray<class ACat*> Cats;
+	TArray<ACat*> Cats;
+	TArray<ECatType> PhotographedCats;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Track")
@@ -71,7 +70,10 @@ protected:
 	void OnPlayerReachedEndOfTrack();
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnBlackCatFound();
+	void OnCatPhotograph(ECatType CatType);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnNewCatPhotograph(ECatType CatType);
 
 private:
 	UFUNCTION()

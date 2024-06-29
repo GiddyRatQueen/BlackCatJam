@@ -4,7 +4,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/SnapCamera.h"
-#include "Cat.h"
 
 AMainGameMode::AMainGameMode()
 {
@@ -65,18 +64,30 @@ void AMainGameMode::OnPhotoTaken()
 
 void AMainGameMode::OnCatDetected(ACat* Cat)
 {
-	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Cat Detected: %s"), *enumPtr->GetDisplayNameTextByValue((int64)Cat->CatType).ToString()));
-	OnCatPhotoTaken.Broadcast();
-
-	switch (Cat->CatType)
+	ECatType catType = Cat->CatType;
+	if (PhotographedCats.IsEmpty())
 	{
-		case ECatType::BlackCat:
-			{
-				OnBlackCatFound();
-				break;
-			}
+		OnNewCatPhotograph(catType);
+		PhotographedCats.Add(catType);
+		
+		return;
 	}
+	
+	for (ECatType Type : PhotographedCats)
+	{
+		if (catType == Type)
+		{
+			OnCatPhotograph(catType);
+		}
+		else
+		{
+			OnNewCatPhotograph(catType);
+			PhotographedCats.Add(catType);
+		}
+	}
+	
+	//UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Cat Detected: %s"), *enumPtr->GetDisplayNameTextByValue((int64)Cat->CatType).ToString()));
 }
 
 void AMainGameMode::OnPlayerReachedEndOfTrack()
