@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cat.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "GameFramework/GameModeBase.h"
 #include "Player/SnapCamera.h"
 #include "MainGameMode.generated.h"
@@ -31,13 +32,18 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnTrackEndSignature OnTrackEnd;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TArray<UTexture2D*> Photographs; // List of Photographs taken of new Cats
+
 private:
 	APlayerCharacter* PlayerCharacter;
 	USnapCamera* PlayerSnapCamera;
 
 	TArray<ACat*> Cats;
-	TArray<ECatType> PhotographedCats;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	TArray<ECatType> PhotographedCats;
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Track")
 	bool TrackStarted;
@@ -64,7 +70,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	UFUNCTION()
-	void OnCatDetected(ACat* Cat);
+	void OnCatDetected(ACat* Cat, UTextureRenderTarget2D* RenderTarget);
 
 	UFUNCTION()
 	void OnPlayerReachedEndOfTrack();
@@ -86,4 +92,6 @@ private:
 	void OnPhotoTaken();
 
 	bool AreAllCatsPhotographed() const;
+	UTexture2D* CreateTextureFromRenderTarget(UTextureRenderTarget2D* RenderTarget) const;
+	void CreatePhotograph(UTextureRenderTarget2D* RenderTarget, ECatType CatType);
 };

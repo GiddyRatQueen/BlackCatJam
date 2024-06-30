@@ -15,7 +15,7 @@ enum class EZoomLevel : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCameraZoomSignature, EZoomLevel, ZoomLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPhotoTakenSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCatPhotoTakenSignature, class ACat*, Cat);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCatPhotoTakenSignature, class ACat*, Cat, UTextureRenderTarget2D*, RenderTarget);
 
 class USceneCaptureComponent2D;
 class UCurveFloat;
@@ -30,6 +30,12 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	USceneCaptureComponent2D* SceneCaptureComponent;
 
 	// -- Properties
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Photographing, meta=(AllowPrivateAccess = "true"))
+	float PhotographDelay;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Photographing, meta=(AllowPrivateAccess = "true"))
+	bool CanTakePhotograph = true;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraFocus, meta=(AllowPrivateAccess = "true"))
 	UCurveFloat* FocusCurve;
 	
@@ -45,6 +51,9 @@ class BLACKCATJAM_API USnapCamera : public UCameraComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio, meta=(AllowPrivateAccess = "true"))
 	USoundBase* ShutterSound;
 
+	FTimerHandle PhotographTimerHandle;
+	float PhotographTimer;
+	
 	FTimerHandle ZoomTimerHandle;
 	bool IsAdjustingZoom;
 	float InitialFOV;
@@ -84,7 +93,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable)
-	void TakePhoto() const;
+	void TakePhoto();
 
 	UFUNCTION(BlueprintCallable)
 	void FocusCamera(EZoomLevel NewZoomLevel);
@@ -103,6 +112,7 @@ private:
 	bool IsActorWithinFocusRegion(const AActor* Actor) const;
 	bool IsActorWithinRange(const AActor* Actor) const;
 	bool IsActorObstructed(const AActor* Actor) const;
-
 	float GetRangeBasedOnFOV() const;
+
+	void StartPhotographDelayTimer();
 };

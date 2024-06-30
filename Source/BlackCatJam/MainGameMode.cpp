@@ -41,7 +41,7 @@ TArray<ACat*> AMainGameMode::GetListOfCats()
 void AMainGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	if (APawn* PlayerPawn = PlayerController->GetPawn())
 	{
@@ -71,28 +71,62 @@ bool AMainGameMode::AreAllCatsPhotographed() const
 	return photographedCount >= catTypeCount;
 }
 
-void AMainGameMode::OnCatDetected(ACat* Cat)
+UTexture2D* AMainGameMode::CreateTextureFromRenderTarget(UTextureRenderTarget2D* RenderTarget) const
+{
+	FTextureRenderTargetResource* resource = RenderTarget->GameThread_GetRenderTargetResource();
+	if (resource)
+	{
+		TArray<FColor> bitMap;
+		bitMap.Empty(RenderTarget->SizeX * RenderTarget->SizeY);
+
+		resource->ReadPixels(bitMap);
+
+		UTexture2D* photograph = UTexture2D::CreateTransient(RenderTarget->SizeX, RenderTarget->SizeY);
+		if (photograph)
+		{
+			void* textureData = photograph->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+			FMemory::Memcpy(textureData, bitMap.GetData(), bitMap.Num() * sizeof(FColor));
+			photograph->GetPlatformData()->Mips[0].BulkData.Unlock();
+			photograph->UpdateResource();
+
+			return photograph;
+		}
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, TEXT("ERROR: Failed to Create Texture from Render Target"));
+	return nullptr;
+}
+
+void AMainGameMode::CreatePhotograph(UTextureRenderTarget2D* RenderTarget, ECatType CatType)
+{
+	uint8 catTypeValue = (uint8)CatType;
+	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
+
+	FString textureName = "Photograph - " + enumPtr->GetDisplayNameTextByValue(catTypeValue).ToString();
+	UTexture2D* texture = RenderTarget->ConstructTexture2D(this, textureName, EObjectFlags::RF_NoFlags, CTF_DeferCompression);
+	if (texture)
+	{
+		Photographs.Add(texture);
+		return;
+	}
+	
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "ERROR: Failed to Create Texture From Render Target");
+}
+
+void AMainGameMode::OnCatDetected(ACat* Cat, UTextureRenderTarget2D* RenderTarget)
 {
 	ECatType catType = Cat->CatType;
-	if (PhotographedCats.IsEmpty())
+	if (PhotographedCats.IsEmpty() || !PhotographedCats.Contains(catType))
 	{
 		OnNewCatPhotograph(catType);
 		PhotographedCats.Add(catType);
+		
+		// Create Texture from Render Target and Save it
+		CreatePhotograph(RenderTarget, catType);
 	}
 	else
 	{
-		for (ECatType Type : PhotographedCats)
-		{
-			if (catType == Type)
-			{
-				OnCatPhotograph(catType);
-			}
-			else
-			{
-				OnNewCatPhotograph(catType);
-				PhotographedCats.Add(catType);
-			}
-		}
+		OnCatPhotograph(catType);
 	}
 
 	if (AreAllCatsPhotographed())
