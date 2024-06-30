@@ -205,13 +205,16 @@ bool USnapCamera::IsActorWithinRange(const AActor* Actor) const
 
 bool USnapCamera::IsActorObstructed(const AActor* Actor) const
 {
-	FVector start = GetOwner()->GetActorLocation();
+	FVector start = GetComponentLocation();
 	FVector end = Actor->GetActorLocation();
 	FHitResult hit;
 
 	if (GetWorld())
 	{
-		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility, FCollisionQueryParams(), FCollisionResponseParams());
+		FCollisionQueryParams COQP;
+		COQP.AddIgnoredActor(GetOwner());	
+		
+		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility, COQP, FCollisionResponseParams());
 		//DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.0f, 0, 4.0f);
 		if (actorHit && hit.GetActor())
 		{
