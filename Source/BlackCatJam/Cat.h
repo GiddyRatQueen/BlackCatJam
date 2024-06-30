@@ -26,7 +26,7 @@ class BLACKCATJAM_API ACat : public APawn
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
-	class UCapsuleComponent* CapsuleCollider;
+	class UBoxComponent* BoxCollider;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
     class USkeletalMeshComponent* Mesh;
