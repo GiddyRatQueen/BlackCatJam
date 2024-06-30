@@ -14,8 +14,9 @@ USnapCamera::USnapCamera()
 	CameraViewport = FVector2D(1320, 350);
 	CurrentTime = 0.0f;
 	CurveValue = 0.0f;
+	CanTakePhotograph = true;
 	
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 // Called when the game starts
@@ -33,16 +34,13 @@ void USnapCamera::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void USnapCamera::TakePhoto() const
+void USnapCamera::TakePhoto()
 {
+	if (!CanTakePhotograph)
+		return;
+	
 	OnPhotoTaken.Broadcast();
 	SceneCaptureComponent->CaptureScene();
-
-	// Play Shutter Sound if Available
-	if (ShutterSound != nullptr)
-	{
-		UGameplayStatics::PlaySound2D(GetWorld(), ShutterSound);
-	}
 	
 	// Get List of Cats within View
 	TArray<ACat*> cats = Cast<AMainGameMode>(GetWorld()->GetAuthGameMode())->GetListOfCats();
@@ -57,11 +55,19 @@ void USnapCamera::TakePhoto() const
 				// Is the Cat Obstructed by Something?
 				if (!IsActorObstructed(cat))
 				{
-					OnCatPhotoTakenEvent.Broadcast(cat);
+					OnCatPhotoTakenEvent.Broadcast(cat, SceneCaptureComponent->TextureTarget);
 				}
 			}
 		}
 	}
+
+	// Play Shutter Sound if Available
+	if (ShutterSound != nullptr)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), ShutterSound);
+	}
+
+	StartPhotographDelayTimer();
 }
 
 void USnapCamera::FocusCamera(EZoomLevel NewZoomLevel)
@@ -189,7 +195,6 @@ bool USnapCamera::IsActorWithinRange(const AActor* Actor) const
 
 	float distance = (Actor->GetActorLocation() - GetOwner()->GetActorLocation()).Length();
 	distance += GetRangeBasedOnFOV();
-	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Distance: " + FString::SanitizeFloat(distance));
 	if (distance <= DetectionLength)
 	{
 		return true;
@@ -228,6 +233,25 @@ bool USnapCamera::IsActorObstructed(const AActor* Actor) const
 float USnapCamera::GetRangeBasedOnFOV() const
 {
 	return CurrentFOV * 10;
+}
+
+void USnapCamera::StartPhotographDelayTimer()
+{
+	PhotographTimer = PhotographDelay;
+	CanTakePhotograph = false;
+	
+	GetWorld()->GetTimerManager().SetTimer(PhotographTimerHandle, [this]()
+	{
+		PhotographTimer -= UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
+		if (PhotographTimer <= 0.0f)
+		{
+			CanTakePhotograph = true;
+			PhotographTimer = 0.0f;
+			
+			GetWorld()->GetTimerManager().ClearTimer(PhotographTimerHandle);
+		}
+		
+	}, UGameplayStatics::GetWorldDeltaSeconds(GetWorld()), true);
 }
 
 FVector2D USnapCamera::CalculateViewportBasedOnFOV()
