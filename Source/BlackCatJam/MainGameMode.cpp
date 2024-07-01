@@ -65,9 +65,11 @@ void AMainGameMode::OnPhotoTaken()
 bool AMainGameMode::AreAllCatsPhotographed() const
 {
 	UEnum* enumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECatType"), true);
-	int catTypeCount = enumPtr->NumEnums();
+	int catTypeCount = enumPtr->NumEnums() - 1;
 	int photographedCount = PhotographedCats.Num();
-
+	
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Cat Count: " + FString::SanitizeFloat(photographedCount));
+	GEngine->AddOnScreenDebugMessage(-1, 2.0, FColor::Red, "Cat Count Needed: " + FString::SanitizeFloat(catTypeCount));
 	return photographedCount >= catTypeCount;
 }
 
